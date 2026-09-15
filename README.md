@@ -1,132 +1,213 @@
-# News Pipeline Demo — React/Next.js + Node.js + PostgreSQL
+# News Pipeline Demo
 
-This project is a working news demo that shows how articles move through a simple pipeline:
+This project is a small demo app that shows how a news system can work end-to-end:
 
-News data → Node.js API → PostgreSQL → Next.js frontend → article pages and sitemap
+News content -> Node.js API -> PostgreSQL -> Next.js frontend -> dynamic article pages -> sitemap
 
-It includes seed scripts for sample content and a local fallback data layer for demo environments where PostgreSQL is not available.
+The app includes:
+- a backend API
+- PostgreSQL database support
+- migration and seed scripts
+- a Next.js frontend
+- sample news articles
+- SEO metadata for each article
+- a sitemap route
 
-## Requirements
+It is designed to be easy to run locally and easy to test by other developers without any manual setup from the original creator.
+
+## Tech stack
+
+- Frontend: Next.js + React
+- Backend: Node.js + Express
+- Database: PostgreSQL
+- Local demo fallback: JSON-backed store if PostgreSQL is unavailable
+
+## Prerequisites
+
+Before running the project, install:
 
 - Node.js 20+
 - npm
-- PostgreSQL 15+ or Docker Desktop
+- Docker Desktop (recommended for PostgreSQL)
 
 ## Project structure
 
-- backend/
-  - Express API
-  - database connection logic
-  - migration and seed scripts
-- frontend/
-  - Next.js app with dynamic article pages
-- docker-compose.yml
-  - PostgreSQL service for the demo database
+```text
+news-pipeline-demo/
+├── backend/
+│   ├── src/
+│   ├── data/
+│   ├── .env.example
+│   ├── package.json
+│   └── package-lock.json
+├── frontend/
+│   ├── app/
+│   ├── lib/
+│   ├── .env.local.example
+│   ├── package.json
+│   └── package-lock.json
+├── docker-compose.yml
+├── README.md
+└── .gitignore
+```
 
-## 1. Start PostgreSQL
+## 1. Clone the repo
 
-This project expects a database named `news_demo` on `localhost:5432`.
+```bash
+git clone https://github.com/VS1975/Demo-News-TEsting-.git
+cd Demo-News-TEsting-
+```
 
-If Docker is installed, start the database from the project root:
+## 2. Start PostgreSQL
+
+This project expects PostgreSQL on localhost:5432 with a database named `news_demo`.
+
+The easiest way is to use Docker:
 
 ```powershell
-cd "E:\downloads\news-pipeline-demo\news-pipeline-demo"
+cd "E:\path\to\Demo-News-TEsting-"
 docker compose up -d
 ```
 
-Then verify it is running:
+From the repo root, it will start a `postgres` container using the values from `docker-compose.yml`.
+
+To confirm it is running:
 
 ```powershell
 docker ps
 ```
 
-You should see a Postgres container listening on port 5432.
+You should see the PostgreSQL container running on port 5432.
 
-## 2. Install backend dependencies
+## 3. Backend setup
+
+Open a terminal in the backend folder:
 
 ```powershell
-cd "E:\downloads\news-pipeline-demo\news-pipeline-demo\backend"
+cd "E:\path\to\Demo-News-TEsting-\backend"
 npm install
 ```
 
-## 3. Run the database migration
+Create the environment file from the example:
+
+```powershell
+copy .env.example .env
+```
+
+The file should look like this:
+
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/news_demo
+PORT=4000
+FRONTEND_ORIGIN=http://localhost:3000
+```
+
+Run the migration:
 
 ```powershell
 npm run migrate
 ```
 
-This creates the `articles` table.
+This creates the `articles` table in PostgreSQL.
 
-## 4. Seed sample data
-
-The app can be seeded with a small or large dataset.
-
-Small demo set:
+Seed the database with sample content:
 
 ```powershell
 npm run seed
 ```
 
-Larger demo set (example: 50 articles):
+To generate a larger set, for example 100 articles:
 
 ```powershell
-node src/seed.js 50
+node src/seed.js 100
 ```
 
-Very large dataset (example: 100,000 articles):
+To generate a very large dataset, for example 100,000 articles:
 
 ```powershell
 node src/seed.js 100000
 ```
 
-## 5. Start the backend
-
-Open a terminal and run:
+Start the backend API:
 
 ```powershell
-cd "E:\downloads\news-pipeline-demo\news-pipeline-demo\backend"
 node src/server.js
 ```
 
-The API will run at:
+The backend should be available at:
 
 ```text
 http://localhost:4000
 ```
 
-Useful endpoints:
+## 4. Frontend setup
 
-- GET /api/health
-- GET /api/news?limit=100&page=1
-- GET /api/news/:slug
-- POST /api/news
-
-## 6. Start the frontend
-
-Open a second terminal and run:
+Open a second terminal in the frontend folder:
 
 ```powershell
-cd "E:\downloads\news-pipeline-demo\news-pipeline-demo\frontend"
+cd "E:\path\to\Demo-News-TEsting-\frontend"
 npm install
+```
+
+Create the environment file from the example:
+
+```powershell
+copy .env.local.example .env.local
+```
+
+The file should look like this:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:4000
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+Start the frontend:
+
+```powershell
 npm run dev
 ```
 
-Open:
+Open the app in the browser:
 
 ```text
 http://localhost:3000
 ```
 
-Test these routes:
+## 5. Test the app
 
-- /
-- /news
-- /news/technology-update-1
-- /sitemap.xml
+### Health check
 
-## 7. How to add more news
+```powershell
+Invoke-WebRequest -Uri http://localhost:4000/api/health -UseBasicParsing
+```
 
-You can add a new article through the API with a POST request.
+Expected result:
+
+```json
+{"ok":true,"database":"connected"}
+```
+
+### List articles
+
+```powershell
+Invoke-WebRequest -Uri "http://localhost:4000/api/news?limit=100&page=1" -UseBasicParsing
+```
+
+This should return JSON with article rows.
+
+### Open pages in browser
+
+Check these routes:
+
+- http://localhost:3000/
+- http://localhost:3000/news
+- http://localhost:3000/news/technology-update-1
+- http://localhost:3000/sitemap.xml
+
+## 6. Add more news
+
+You can add a new article through the API by sending a POST request.
 
 Example in PowerShell:
 
@@ -145,58 +226,94 @@ $body = @{
 Invoke-RestMethod -Uri "http://localhost:4000/api/news" -Method Post -ContentType "application/json" -Body $body
 ```
 
-You can also generate a larger seed set with:
+After that, refresh the frontend pages and the new article should appear.
 
-```powershell
-node src/seed.js 50
-```
+## 7. How to know data is loading
 
-## 8. How to know data is loading
+You can confirm that data is flowing in any of these ways:
 
-The fastest checks are:
-
-1. Backend response:
+1. Backend check
 
 ```powershell
 Invoke-WebRequest -Uri "http://localhost:4000/api/news?limit=100&page=1" -UseBasicParsing
 ```
 
-2. Frontend page loads:
+2. Browser check
 
-- http://localhost:3000/
-- http://localhost:3000/news
+- open http://localhost:3000/
+- open http://localhost:3000/news
+- articles should render as cards with titles and summaries
 
-If the response contains `articles: [...]`, the app is successfully loading data.
+3. Terminal logs
 
-## 9. Why PostgreSQL warnings happen
+The backend logs startup information and errors when the API fails.
 
-The app tries to connect to PostgreSQL first. If that database is not running, it logs a warning and uses a local demo fallback store.
+## 8. Why you may see PostgreSQL unavailable
 
-This fallback is useful for testing and demos, but the full app is intended to run with PostgreSQL.
+The app tries to connect to PostgreSQL first. If PostgreSQL is not running or the connection string is wrong, it prints a warning and falls back to a local demo store.
 
-For the official demo flow, always start PostgreSQL first and then run the migration/seed scripts.
+For the full experience, always:
 
-## 10. What this demo teaches
+- start Docker
+- run `docker compose up -d`
+- ensure the database is available on localhost:5432
+- run the migration and seed commands
 
-1. One dynamic route can serve many article pages.
-2. The backend validates and saves article data.
-3. PostgreSQL stores article records securely.
-4. SEO metadata is generated dynamically for each page.
-5. A sitemap can be generated from database content.
-6. Pagination helps the frontend render large datasets without overloading the browser.
+## 9. What the app demonstrates
 
-## 11. Important notes
+This project shows how to:
 
-This is a training sample, not a production deployment.
+- store article data in a relational database
+- query articles through a REST API
+- render them in a Next.js frontend
+- generate article metadata dynamically
+- create a sitemap from database content
+- paginate large datasets without loading everything at once
 
-For a real production system, you would also want:
+## 10. Notes for the team
 
-- authentication and role-based access
-- validation and sanitization
+This is a training/demo project, not a production deployment.
+
+For production, you would also want:
+
+- authentication and authorization
 - rate limiting
-- image storage and CDN
-- indexing and query monitoring
-- backups and migrations
+- validation and sanitization
+- image storage/CDN
+- database backups
+- monitoring and logging
 - caching and deployment automation
 
-The sample content is intentionally fictional and owned for demo purposes.
+The sample article content is fictional and intended only for demo purposes.
+
+## 11. Quick start summary
+
+If you want the shortest possible setup order, run:
+
+```powershell
+cd "E:\path\to\Demo-News-TEsting-"
+docker compose up -d
+cd backend
+npm install
+copy .env.example .env
+npm run migrate
+npm run seed
+node src/server.js
+```
+
+Then in another terminal:
+
+```powershell
+cd "E:\path\to\Demo-News-TEsting-\frontend"
+npm install
+copy .env.local.example .env.local
+npm run dev
+```
+
+Then open:
+
+```text
+http://localhost:3000
+```
+
+This is enough to run and test the demo without any additional help.
